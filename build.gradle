@@ -6,10 +6,6 @@ plugins {
 group = 'us.jcedeno'
 version = '0.1-SNAPSHOT'
 
-sourceCompatibility = 16
-targetCompatibility = 16
-
-
 compileJava{
     options.encoding = 'UTF-8'
 }
