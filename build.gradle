@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+    id 'io.freefair.lombok' version '6.2.0'
+}
+group = 'us.jcedeno'
+version = '0.1-SNAPSHOT'
+
+compileJava{
+    options.encoding = 'UTF-8'
+}
+
+repositories{
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven { url 'https://jitpack.io' } 
+    maven { url 'https://papermc.io/repo/repository/maven-public/' }
+    maven { url 'https://libraries.minecraft.net/' }
+}
+
+dependencies{
+    compileOnly 'com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT'
+    compileOnly 'com.mojang:authlib:1.5.25'
+}
