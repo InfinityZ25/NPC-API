@@ -26,7 +26,7 @@ import us.jcedeno.libs.utils.NPCOptions;
 import us.jcedeno.libs.utils.StringUtility;
 
 public class Npc {
-    private final JavaPlugin plugin;
+    private static JavaPlugin plugin;
 
     private final UUID uuid = UUID.randomUUID();
     private final String name;
@@ -34,16 +34,36 @@ public class Npc {
     private final String texture;
     private final String signature;
     private final boolean hideNametag;
+    private final boolean rotateHead;
 
     private Object entityPlayer;
 
-    public Npc(JavaPlugin plugin, NPCOptions npcOptions) {
-        this.plugin = plugin;
+    /**
+     * Method that must be called at least once for npcs to function.
+     * 
+     * @param plugin An instance of a plugin.
+     */
+    public static void registerPlugin(JavaPlugin plugin) {
+        Npc.plugin = plugin;
+    }
+
+    /**
+     * A static constructor for the NPC entity.
+     * 
+     * @param options The options for the NPC.
+     * @return The NPC.
+     */
+    public static Npc create(NPCOptions options) {
+        return new Npc(options);
+    }
+
+    public Npc(NPCOptions npcOptions) {
 
         this.name = npcOptions.getName();
         this.texture = npcOptions.getTexture();
         this.signature = npcOptions.getSignature();
         this.hideNametag = npcOptions.isHideNametag();
+        this.rotateHead = npcOptions.isRotateHead();
 
         if (hideNametag) {
             this.entityName = StringUtility.randomCharacters(10);
@@ -173,18 +193,21 @@ public class Npc {
             sendPacket(player, packetPlayOutScoreboardTeamTeamCollectionIntConstructor.newInstance(scoreboardTeam,
                     Collections.singletonList(entityName), 3));
 
-            sendHeadRotationPacket(player);
-
-            Bukkit.getServer().getScheduler().runTaskTimer(plugin, task -> {
-                Player currentlyOnline = Bukkit.getPlayer(player.getUniqueId());
-                if (currentlyOnline == null || !currentlyOnline.isOnline()) {
-                    task.cancel();
-                    return;
-                }
-
+            if (this.rotateHead) {
                 sendHeadRotationPacket(player);
-            }, 0, 2);
 
+                Bukkit.getServer().getScheduler().runTaskTimer(plugin, task -> {
+                    Player currentlyOnline = Bukkit.getPlayer(player.getUniqueId());
+                    if (currentlyOnline == null || !currentlyOnline.isOnline()) {
+                        task.cancel();
+                        return;
+                    }
+
+                    sendHeadRotationPacket(player);
+                }, 0, 2);
+
+            }
+            // Continuosly remove the player from the list of players to be sent
             Bukkit.getServer().getScheduler().runTaskLater(plugin, () -> {
                 try {
                     Object removePlayerEnum = nmsHelper.getNMSClass("PacketPlayOutPlayerInfo$EnumPlayerInfoAction")
@@ -255,6 +278,45 @@ public class Npc {
         }
     }
 
+    public void lookAtLocation(Location loc) {
+        NMSHelper nmsHelper = NMSHelper.getInstance();
+
+        Location original = getLocation();
+        Location location = original.clone().setDirection(loc.subtract(original.clone()).toVector());
+
+        byte yaw = (byte) (location.getYaw() * 256 / 360);
+        byte pitch = (byte) (location.getPitch() * 256 / 360);
+
+        try {
+            // PacketPlayOutEntityHeadRotation
+            Constructor<?> packetPlayOutEntityHeadRotationConstructor = nmsHelper
+                    .getNMSClass("PacketPlayOutEntityHeadRotation")
+                    .getConstructor(nmsHelper.getNMSClass("Entity"), byte.class);
+
+            // Minecraft is dumb and two packets are needed
+            Object packetPlayOutEntityHeadRotation = packetPlayOutEntityHeadRotationConstructor
+                    .newInstance(this.entityPlayer, yaw);
+
+            // Yeah it sucks
+            Constructor<?> packetPlayOutEntityLookConstructor = nmsHelper
+                    .getNMSClass("PacketPlayOutEntity$PacketPlayOutEntityLook")
+                    .getConstructor(int.class, byte.class, byte.class, boolean.class);
+            Object packetPlayOutEntityLook = packetPlayOutEntityLookConstructor.newInstance(getId(), yaw, pitch, false);
+
+            viewers.stream().map(Bukkit::getPlayer).filter(Objects::nonNull).forEach(p -> {
+                sendPacket(p, packetPlayOutEntityHeadRotation);
+                sendPacket(p, packetPlayOutEntityLook);
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Util method to fix the npc's helment layer.
+     * 
+     * @param player
+     */
     public void fixSkinHelmetLayerForPlayer(Player player) {
         Byte skinFixByte = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40;
         sendMetadata(player, 16, skinFixByte);
