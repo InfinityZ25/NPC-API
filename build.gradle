@@ -6,8 +6,36 @@ plugins {
 group = 'us.jcedeno'
 version = '0.1-SNAPSHOT'
 
+sourceCompatibility = 16
+targetCompatibility = 16
+
+
 compileJava{
     options.encoding = 'UTF-8'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
+
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
 }
 
 repositories{
