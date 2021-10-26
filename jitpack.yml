@@ -1,3 +1,10 @@
+jdk:
+  - openjdk16
 before_install:
-  - sdk install java 16.0.2-open
-  - sdk use java 16.0.2-open
+  - echo "Before Install"
+  - bash ensure-java-16 install
+install:
+  - echo "Install"
+  - if ! bash ensure-java-16 use; then source ~/.sdkman/bin/sdkman-init.sh; fi
+  - java -version
+  - ./gradlew tasks --all
