@@ -60,6 +60,30 @@ public class Npc {
         return new Npc(options);
     }
 
+    /**
+     * Creates a new NPC based on the skin of a player.
+     * 
+     * @param player
+     * @param options
+     */
+    public Npc(Player player, NPCOptions options) {
+        this.name = player.getName();
+        var profile = player.getPlayerProfile().getProperties().iterator().next();
+        this.signature = profile.getSignature();
+        this.texture = profile.getValue();
+        this.hideNametag = options.isHideNametag();
+        this.rotateHead = options.isRotateHead();
+
+        if (hideNametag) {
+            this.entityName = StringUtility.randomCharacters(10);
+        } else {
+            this.entityName = this.name;
+        }
+
+        addToWorld(options.getLocation());
+
+    }
+
     public Npc(NPCOptions npcOptions) {
 
         this.name = npcOptions.getName();
