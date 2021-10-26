@@ -1,5 +1,6 @@
 package us.jcedeno.libs;
 
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -19,8 +20,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import us.jcedeno.libs.utils.EpicApi;
 import us.jcedeno.libs.utils.NMSHelper;
 import us.jcedeno.libs.utils.NPCOptions;
 import us.jcedeno.libs.utils.StringUtility;
@@ -31,8 +34,8 @@ public class Npc {
     private final UUID uuid = UUID.randomUUID();
     private final String name;
     private final String entityName;
-    private final String texture;
-    private final String signature;
+    private String texture;
+    private String signature;
     private final boolean hideNametag;
     private final boolean rotateHead;
 
@@ -60,8 +63,19 @@ public class Npc {
     public Npc(NPCOptions npcOptions) {
 
         this.name = npcOptions.getName();
-        this.texture = npcOptions.getTexture();
-        this.signature = npcOptions.getSignature();
+
+        if (npcOptions.getUsingPlayerSkin() != null) {
+            try {
+                var textureData = EpicApi.getPlayerSkin(npcOptions.getUsingPlayerSkin());
+                this.texture = textureData.get("value").getAsString();
+                this.signature = textureData.get("signature").getAsString();
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        } else {
+            this.texture = npcOptions.getTexture();
+            this.signature = npcOptions.getSignature();
+        }
         this.hideNametag = npcOptions.isHideNametag();
         this.rotateHead = npcOptions.isRotateHead();
 
@@ -72,6 +86,16 @@ public class Npc {
         }
 
         addToWorld(npcOptions.getLocation());
+    }
+
+    /**
+     * Sets the NPC's inventory to the given inventory. Note: This method is not
+     * supported yet.
+     * 
+     * @param inventory The inventory to set.
+     */
+    public void setEquipment(PlayerInventory inventory) {
+
     }
 
     private void addToWorld(Location location) {
@@ -193,9 +217,9 @@ public class Npc {
             sendPacket(player, packetPlayOutScoreboardTeamTeamCollectionIntConstructor.newInstance(scoreboardTeam,
                     Collections.singletonList(entityName), 3));
 
-            if (this.rotateHead) {
-                sendHeadRotationPacket(player);
+            sendHeadRotationPacket(player);
 
+            if (this.rotateHead) {
                 Bukkit.getServer().getScheduler().runTaskTimer(plugin, task -> {
                     Player currentlyOnline = Bukkit.getPlayer(player.getUniqueId());
                     if (currentlyOnline == null || !currentlyOnline.isOnline()) {

@@ -46,4 +46,5 @@ repositories{
 dependencies{
     compileOnly 'com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT'
     compileOnly 'com.mojang:authlib:1.5.25'
+    implementation 'com.google.code.gson:gson:2.8.8'
 }
