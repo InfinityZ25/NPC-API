@@ -12,8 +12,7 @@ public class NPCOptions {
     private final String texture;
     private final String signature;
     private final Location location;
-    private boolean hideNametag = true;
-    private boolean rotateHead = false;
+    private final boolean hideNametag;
+    private final boolean rotateHead;
     private String usingPlayerSkin;
-
 }
